@@ -1,0 +1,34 @@
+version: '3'
+
+services:
+  markr-backend:
+    image: markr-backend
+    restart: unless-stopped
+    tty: true
+    build:
+      context: ./backend
+    environment:
+      NODE_ENV: production
+    volumes:
+      - backend-logs:/logs
+    ports:
+      - 8080:3000
+    depends_on:
+      - markr-mongoDB
+
+  markr-mongoDB:
+    image: mongo
+    container_name: markr-mongoDB
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: VcFYJ_8[BK
+    tty: true
+    volumes:
+      - db-data:/data/db
+    ports:
+      - "27018:27017"
+
+volumes:
+  db-data:
+  backend-logs:

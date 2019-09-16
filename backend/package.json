@@ -1,0 +1,24 @@
+{
+  "name": "markr",
+  "version": "1.0.0",
+  "description": "Markr Backend",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "test": "jest --watchAll --verbose"
+  },
+  "author": "Amin Fazl",
+  "license": "ISC",
+  "dependencies": {
+    "body-parser": "^1.19.0",
+    "config": "^3.2.2",
+    "express": "^4.17.1",
+    "express-async-errors": "^3.1.1",
+    "joi": "^14.3.1",
+    "joi-objectid": "^2.0.0",
+    "mongoose": "^5.7.1",
+    "saslprep": "^1.0.3",
+    "winston": "^2.4.4",
+    "xml2js": "^0.4.22"
+  }
+}
