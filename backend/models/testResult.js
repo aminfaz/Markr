@@ -15,10 +15,23 @@ const StudentResult = new mongoose.Schema(
       type: String,
       required: true
     },
-    marksObtained: {
+    obtainedMarks: {
       type: Number,
       required: true,
       min: 1
+    },
+    percentage: {
+      type: Number,
+      default: 0,
+      required: false,
+      min: 0,
+      max: 100
+    },
+    rank: {
+      type: Number,
+      default: 0,
+      required: false,
+      min: 0
     }
   },
   { _id: false }
@@ -42,25 +55,42 @@ const TestResult = mongoose.model(
       required: false,
       default: {},
       of: StudentResult
+    },
+    meanMark: {
+      type: Number,
+      default: 0,
+      required: false,
+      min: 0
+    },
+    meanPercentage: {
+      type: Number,
+      default: 0,
+      required: false,
+      min: 0,
+      max: 100
+    },
+    p25: {
+      type: Number,
+      default: 0,
+      required: false,
+      min: 0,
+      max: 100
+    },
+    p50: {
+      type: Number,
+      default: 0,
+      required: false,
+      min: 0,
+      max: 100
+    },
+    p75: {
+      type: Number,
+      default: 0,
+      required: false,
+      min: 0,
+      max: 100
     }
   })
 );
 
-function validateResult(result) {
-  const schema = {
-    name: Joi.string()
-      .min(5)
-      .max(50)
-      .required(),
-    phone: Joi.string()
-      .min(5)
-      .max(50)
-      .required(),
-    isGold: Joi.boolean()
-  };
-
-  return Joi.validate(result, schema);
-}
-
 exports.TestResult = TestResult;
-exports.validate = validateResult;

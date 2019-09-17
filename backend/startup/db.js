@@ -9,7 +9,8 @@ module.exports = function() {
     pass: db.password,
     dbName: db.database,
     useNewUrlParser: true,
-    useUnifiedTopology: true
+    useUnifiedTopology: true,
+    useFindAndModify: false
   };
   mongoose
     .connect(db.host, options)

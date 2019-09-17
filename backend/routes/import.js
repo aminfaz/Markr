@@ -10,14 +10,16 @@ const xmlBodyParser = bodyParser.text({
   type: "text/xml+markr",
   limit: "50mb"
 });
+
 const xmlParser = new xml2js.Parser();
 
 router.post("", [markrXML, xmlBodyParser], async (req, res) => {
   req = await xmlParser.parseStringPromise(req.body);
-  if (!req["mcq-test-results"] || !req["mcq-test-results"]["mcq-test-result"]) {
-    res.status(400).send("Bad Request");
+  if (!req || !req["mcq-test-results"] || !req["mcq-test-results"]["mcq-test-result"]) {
+    return res.status(400).send("Bad Request");
   }
   const results = req["mcq-test-results"]["mcq-test-result"];
+
   const session = {
     created: {},
     updated: {}
@@ -27,19 +29,28 @@ router.post("", [markrXML, xmlBodyParser], async (req, res) => {
       await processResult(results[i], session);
     }
 
-    saveSession(session);
+    await saveSession(session);
   } catch (ex) {
     winston.error(ex);
 
     if (typeof ex === "string" && ex.indexOf("[Invalid Payload]:") === 0) {
-      res.status(400).send("Could not process content of the file");
+      return res.status(400).send("Could not process content of the file");
     }
-    res
+    return res
       .status(500)
       .send("Could not process content of the file due to internal error");
   }
-  res.send("bingo");
+  
+  res.send("All of the records have been successfully processed");
 
+  try {
+    await recalculateTests(session);
+  }
+  catch (ex) {
+    winston.error(ex);
+  }
+  
+  //#region Processing Payload
   async function processResult(param, session) {
     let result = extractResult(param);
 
@@ -66,18 +77,11 @@ router.post("", [markrXML, xmlBodyParser], async (req, res) => {
   }
 
   function processStudentData(testResult, student) {
-    let studentResult = testResult.studentResults.get(student.number);
-    if (student.number === "2306") {
-      //console.dir(testResult.studentResults)
-      console.log("###studentResult: ", studentResult);
-      console.log("###student: ", student);
-    }
     let isChanged = false;
+    let studentResult = testResult.studentResults.get(student.number);
+
     if (!studentResult) {
       testResult.studentResults.set(student.number, student);
-      if (student.number === "2306") {
-        console.log("###79", testResult.studentResults.get(student.number));
-      }
       isChanged = true;
     } else if (
       student.firstName !== studentResult.firstName ||
@@ -135,16 +139,15 @@ router.post("", [markrXML, xmlBodyParser], async (req, res) => {
 
   async function getTestResult(id, session) {
     let result;
-
     if (session.created[id]) {
       result = session.created[id];
     }
-
-    if (session.updated[id]) {
+    else if (session.updated[id]) {
       result = session.updated[id];
     }
-
-    result = await TestResult.findById(id);
+    else {
+      result = await TestResult.findById(id);
+    }
 
     return result;
   }
@@ -156,8 +159,68 @@ router.post("", [markrXML, xmlBodyParser], async (req, res) => {
   }
 
   async function saveSession(session) {
-    console.dir(session);
+    let objects = Object.values(session.created);
+    for (let i = 0 ; i < objects.length; i++) {
+      await objects[i].save();
+    }
+
+    for (key in session.updated) {
+      await TestResult.findByIdAndUpdate(key, session.updated[key]);
+    }
   }
+  //#endregion Processing Payload
+
+  //#region Recalculating for reporting
+  async function recalculateTests(session) {
+    const ids = Object.keys(session.created).concat(Object.keys(session.updated));
+    
+    let testResult;
+    for (let i = 0; i < ids.length; i++){
+      testResult = await TestResult.findById(ids[i]);
+
+      const studentMarksArr = [];
+      
+      const total = recalculateStudentsMarks(testResult.studentResults, testResult.availableMarks, studentMarksArr);
+      
+      testResult.meanMark = total / testResult.studentResults.size;
+      testResult.meanPercentage = testResult.meanMark * 100 / testResult.availableMarks;
+
+      studentMarksArr.sort((a, b) => a.obtainedMarks - b.obtainedMarks);
+      
+      recalculatePercentiles(testResult, studentMarksArr);
+
+      captureRankings(studentMarksArr);
+      
+      await TestResult.findByIdAndUpdate(ids[i], testResult);
+    }
+  }
+
+  function recalculateStudentsMarks(studentResults, availableMarks, studentMarksArr) {
+    let total = 0;
+    studentResults.forEach((studentResult) => {
+      studentResult.percentage = studentResult.obtainedMarks * 100 / availableMarks;
+      total += studentResult.obtainedMarks;
+      studentMarksArr.push(studentResult);
+    });
+    return total;
+  }
+
+  function recalculatePercentiles(testResult, studentMarksArr){
+    function calculateIndex(percentile) {
+      return Math.floor((percentile / 100) * studentMarksArr.length);
+    }
+
+    testResult.p25 = studentMarksArr[calculateIndex(25)].percentage;
+    testResult.p50 = studentMarksArr[calculateIndex(50)].percentage;
+    testResult.p75 = studentMarksArr[calculateIndex(75)].percentage;
+  }
+
+  function captureRankings(studentMarksArr) {
+    studentMarksArr.forEach((studentResult, index, array) => {
+      studentResult.rank = array.length - index;
+    })
+  }
+  //#endregion Recalculating for reporting
 });
 
 module.exports = router;
