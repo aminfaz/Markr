@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "test": "jest --watchAll --verbose"
+    "test": "NODE_ENV=test jest --forceExit --watchAll --maxWorkers=1 --verbose"
   },
   "author": "Amin Fazl",
   "license": "ISC",

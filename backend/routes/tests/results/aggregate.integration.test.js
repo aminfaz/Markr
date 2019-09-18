@@ -1,7 +1,7 @@
 const request = require('supertest');
 const { TestResult } = require('../../../models/testResult');
 
-describe('/api/results/:id/aggregate', () => {
+describe('[GET] /api/results/:id/aggregate', () => {
   let server;
 
   beforeEach(async () => {
@@ -13,7 +13,7 @@ describe('/api/results/:id/aggregate', () => {
 
   afterEach(async () => {
     await server.close();
-    await TestResult.remove({});
+    await TestResult.deleteMany({});
   });
 
   describe('Empty DB', () => {

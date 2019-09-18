@@ -5,6 +5,10 @@ async function recalculateTests(ids) {
   for (let i = 0; i < ids.length; i++) {
     testResult = await TestResult.findById(ids[i]);
 
+    if (!testResult) {
+      continue;
+    }
+
     const studentMarksArr = [];
 
     const total = recalculateStudentsMarks(

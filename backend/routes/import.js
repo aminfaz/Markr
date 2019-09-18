@@ -36,7 +36,8 @@ router.post("", [markrXML, xmlBodyParser, testResultXML2JSON], async (req, res) 
   }
 
   res.send("All of the records have been successfully processed");
-
+  
+  // Asyc calculate the aggregate values for all of created and updated tests
   try {
     const ids = Object.keys(session.created).concat(
       Object.keys(session.updated)
@@ -119,10 +120,6 @@ router.post("", [markrXML, xmlBodyParser, testResultXML2JSON], async (req, res) 
     }
   }
   //#endregion Processing Payload
-
-  //#region Recalculating for reporting
-  
-  //#endregion Recalculating for reporting
 });
 
 module.exports = router;

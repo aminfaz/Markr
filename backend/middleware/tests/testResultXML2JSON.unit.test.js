@@ -7,7 +7,7 @@ describe('testResultXML2JSON middleware', () => {
   const mockResObj = () => {
     const res = {};
     res.status = jest.fn().mockReturnValue(res);
-    res.send = jest.fn(function(s){console.log('######',s);return res;});
+    res.send = jest.fn(/*function(s){console.log('######',s);return res;}*/);
     return res;
   };
   const mockRes= mockResObj();
