@@ -3,35 +3,29 @@ const winston = require("winston");
 const router = express.Router();
 const markrXML = require("../middleware/markrXML");
 const bodyParser = require("body-parser");
-const xml2js = require("xml2js");
+const testResultXML2JSON = require("../middleware/testResultXML2JSON");
 const { TestResult } = require("../models/testResult");
+const { calculateAggregates } = require("../services/calculateAggregates");
 
 const xmlBodyParser = bodyParser.text({
   type: "text/xml+markr",
   limit: "50mb"
 });
 
-const xmlParser = new xml2js.Parser();
-
-router.post("", [markrXML, xmlBodyParser], async (req, res) => {
-  req = await xmlParser.parseStringPromise(req.body);
-  if (!req || !req["mcq-test-results"] || !req["mcq-test-results"]["mcq-test-result"]) {
-    return res.status(400).send("Bad Request");
-  }
-  const results = req["mcq-test-results"]["mcq-test-result"];
-
+router.post("", [markrXML, xmlBodyParser, testResultXML2JSON], async (req, res) => {
   const session = {
     created: {},
     updated: {}
   };
+
   try {
-    for (let i = 0; i < results.length; i++) {
-      await processResult(results[i], session);
+    for (let i = 0; i < req.body.length; i++) {
+      await processResult(req.body[i], session);
     }
 
     await saveSession(session);
   } catch (ex) {
-    winston.error(ex);
+    winston.error(ex.message, ex);
 
     if (typeof ex === "string" && ex.indexOf("[Invalid Payload]:") === 0) {
       return res.status(400).send("Could not process content of the file");
@@ -40,20 +34,20 @@ router.post("", [markrXML, xmlBodyParser], async (req, res) => {
       .status(500)
       .send("Could not process content of the file due to internal error");
   }
-  
+
   res.send("All of the records have been successfully processed");
 
   try {
-    await recalculateTests(session);
+    const ids = Object.keys(session.created).concat(
+      Object.keys(session.updated)
+    );
+    await calculateAggregates(ids);
+  } catch (ex) {
+    winston.error(ex.message, ex);
   }
-  catch (ex) {
-    winston.error(ex);
-  }
-  
-  //#region Processing Payload
-  async function processResult(param, session) {
-    let result = extractResult(param);
 
+  //#region Processing Payload
+  async function processResult(result, session) {
     let testResult = await getTestResult(result.testId, session);
     // Create the TestResult
     if (!testResult) {
@@ -95,57 +89,13 @@ router.post("", [markrXML, xmlBodyParser], async (req, res) => {
     return isChanged;
   }
 
-  function extractResult(result) {
-    if (!result["test-id"] || !result["test-id"][0]) {
-      throw "[Invalid Payload]: Test ID is required";
-    }
-
-    if (
-      !result["summary-marks"] ||
-      !result["summary-marks"][0] ||
-      !result["summary-marks"][0]["$"] ||
-      !result["summary-marks"][0]["$"].available
-    ) {
-      throw "[Invalid Payload]: Available marks is required";
-    }
-
-    if (!result["student-number"] || !result["student-number"][0]) {
-      throw "[Invalid Payload]: Student number is required";
-    }
-
-    if (!result["first-name"] || !result["first-name"][0]) {
-      throw "[Invalid Payload]: Student first name is required";
-    }
-
-    if (!result["last-name"] || !result["last-name"][0]) {
-      throw "[Invalid Payload]: Student last name is required";
-    }
-
-    if (!result["summary-marks"][0]["$"].obtained) {
-      throw "[Invalid Payload]: Student obtained marks is required";
-    }
-
-    return {
-      testId: result["test-id"][0],
-      availableMarks: result["summary-marks"][0]["$"].available,
-      student: {
-        number: result["student-number"][0],
-        firstName: result["first-name"][0],
-        lastName: result["last-name"][0],
-        obtainedMarks: result["summary-marks"][0]["$"].obtained
-      }
-    };
-  }
-
   async function getTestResult(id, session) {
     let result;
     if (session.created[id]) {
       result = session.created[id];
-    }
-    else if (session.updated[id]) {
+    } else if (session.updated[id]) {
       result = session.updated[id];
-    }
-    else {
+    } else {
       result = await TestResult.findById(id);
     }
 
@@ -160,7 +110,7 @@ router.post("", [markrXML, xmlBodyParser], async (req, res) => {
 
   async function saveSession(session) {
     let objects = Object.values(session.created);
-    for (let i = 0 ; i < objects.length; i++) {
+    for (let i = 0; i < objects.length; i++) {
       await objects[i].save();
     }
 
@@ -171,55 +121,7 @@ router.post("", [markrXML, xmlBodyParser], async (req, res) => {
   //#endregion Processing Payload
 
   //#region Recalculating for reporting
-  async function recalculateTests(session) {
-    const ids = Object.keys(session.created).concat(Object.keys(session.updated));
-    
-    let testResult;
-    for (let i = 0; i < ids.length; i++){
-      testResult = await TestResult.findById(ids[i]);
-
-      const studentMarksArr = [];
-      
-      const total = recalculateStudentsMarks(testResult.studentResults, testResult.availableMarks, studentMarksArr);
-      
-      testResult.meanMark = total / testResult.studentResults.size;
-      testResult.meanPercentage = testResult.meanMark * 100 / testResult.availableMarks;
-
-      studentMarksArr.sort((a, b) => a.obtainedMarks - b.obtainedMarks);
-      
-      recalculatePercentiles(testResult, studentMarksArr);
-
-      captureRankings(studentMarksArr);
-      
-      await TestResult.findByIdAndUpdate(ids[i], testResult);
-    }
-  }
-
-  function recalculateStudentsMarks(studentResults, availableMarks, studentMarksArr) {
-    let total = 0;
-    studentResults.forEach((studentResult) => {
-      studentResult.percentage = studentResult.obtainedMarks * 100 / availableMarks;
-      total += studentResult.obtainedMarks;
-      studentMarksArr.push(studentResult);
-    });
-    return total;
-  }
-
-  function recalculatePercentiles(testResult, studentMarksArr){
-    function calculateIndex(percentile) {
-      return Math.floor((percentile / 100) * studentMarksArr.length);
-    }
-
-    testResult.p25 = studentMarksArr[calculateIndex(25)].percentage;
-    testResult.p50 = studentMarksArr[calculateIndex(50)].percentage;
-    testResult.p75 = studentMarksArr[calculateIndex(75)].percentage;
-  }
-
-  function captureRankings(studentMarksArr) {
-    studentMarksArr.forEach((studentResult, index, array) => {
-      studentResult.rank = array.length - index;
-    })
-  }
+  
   //#endregion Recalculating for reporting
 });
 

@@ -3,10 +3,10 @@ const winston = require("winston");
 const router = express.Router();
 const { TestResult } = require("../models/testResult");
 
-router.get('/:id/aggregate', async (req, res) => {
+router.get("/:id/aggregate", async (req, res) => {
   const testResult = await TestResult.findById(req.params.id);
-  if (!testResult){
-    return res.status(404).send('The test with the given ID was not found.');
+  if (!testResult) {
+    return res.status(404).send("The test with the given ID was not found.");
   }
 
   res.send({

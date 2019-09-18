@@ -1,0 +1,28 @@
+<xs:schema attributeFormDefault="unqualified" elementFormDefault="qualified" xmlns:xs="http://www.w3.org/2001/XMLSchema">
+  <xs:element name="mcq-test-results">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name="mcq-test-result" maxOccurs="unbounded" minOccurs="1">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element type="xs:string" name="first-name" use="required" />
+              <xs:element type="xs:string" name="last-name" use="required" />
+              <xs:element type="xs:string" name="student-number" use="required"/>
+              <xs:element type="xs:string" name="test-id" use="required"/>
+              <xs:element name="summary-marks">
+                <xs:complexType>
+                  <xs:simpleContent>
+                    <xs:extension base="xs:string">
+                      <xs:attribute type="xs:byte" name="available" use="required"/>
+                      <xs:attribute type="xs:byte" name="obtained" use="required"/>
+                    </xs:extension>
+                  </xs:simpleContent>
+                </xs:complexType>
+              </xs:element>
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+</xs:schema>
