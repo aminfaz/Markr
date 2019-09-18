@@ -22,7 +22,7 @@ services:
     restart: unless-stopped
     environment:
       MONGO_INITDB_ROOT_USERNAME: root
-      MONGO_INITDB_ROOT_PASSWORD: VcFYJ_8[BK
+      MONGO_INITDB_ROOT_PASSWORD: WYp4-_S3$z??Dguq
     tty: true
     volumes:
       - db-data:/data/db

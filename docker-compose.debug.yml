@@ -1,13 +1,18 @@
 version: '3'
 
 services:
-  markr:
-    image: markr-
-    build: .
+  db:
+    image: mongo
+    container_name: markr-mongoDB
+    restart: unless-stopped
     environment:
-      NODE_ENV: development
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: VcFYJ_8[BK
+    tty: true
+    volumes:
+      - db-data-dev:/data/db
     ports:
-      - 3000:3000
-      - 9229:9229
-    ## set your startup file here
-    command: node --inspect=0.0.0.0:9229 index.js
+      - "27018:27017"
+
+volumes:
+  db-data-dev:
