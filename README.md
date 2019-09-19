@@ -74,7 +74,16 @@ To execute tests, run the following command
 cd ./backend/
 npm test
 ```
-
+To execute unit tests only, run the following command
+```
+cd ./backend/
+npm run utest
+```
+To execute integration tests only, run the following command
+```
+cd ./backend/
+npm run itest
+```
 ## API Reference
 Please refer to our full API documentation on [Swagger](https://app.swaggerhub.com/apis-docs/amin-fazl/Markr/v1#/default/post_import)
 
