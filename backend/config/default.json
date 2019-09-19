@@ -1,6 +1,6 @@
 {
   "db": {
-    "host": "mongodb://db:27017",
+    "host": "mongodb://localhost:27018",
     "database": "markr",
     "user": "root",
     "password": "VcFYJ_8[BK"
