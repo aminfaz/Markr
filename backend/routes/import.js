@@ -89,6 +89,8 @@ router.post(
       } else if (studentResult.obtainedMarks < student.obtainedMarks) {
         studentResult.obtainedMarks = student.obtainedMarks;
         isChanged = true;
+      } else if (studentResult.obtainedMarks > student.obtainedMarks) {
+        throw "[Invalid Payload]: Student obtained mark already stored is higher";
       }
       return isChanged;
     }
