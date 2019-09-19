@@ -1,7 +1,7 @@
 # Markr
 
 ## Description
-API to ingest &amp; process test results.
+API to ingest &amp; process test results. The application has following capabilities.
 
 ### Import Data
 This application will consume specific format of XML in order to import test result taken for a given student in a given test.
@@ -13,6 +13,7 @@ The application is capable of reporting the aggregate result for a given test. S
 
 ## Notes
 ### Assumptions
+- Authorization is NOT required
 - Tests are identified by the ID
 - Students are identified by the Student Number and First name and Last name
 - If a new data for an existing test result received.
@@ -25,6 +26,9 @@ The application is capable of reporting the aggregate result for a given test. S
 - If payload has a test result for a student and another payload for the same test received while the student number is the same and either of the first or last name are not, then the payload will not be processed.
 
 ### Approach Taken
+- mongoDB has been chosen for the persistance layer of this application and test results have been saved as documents
+- Node.js and express are chosen for the development of the API.
+- Each component of this application is in a container and a docker-compose file is provided for deployment of this application
 - For compatibility purpose the Test ID and Student Number have been considered to be string
 - For better user experience, after importing the results, the user will receive the success message while the application is calculating the aggregate values for all of the newly created tests or any updated ones.
 
