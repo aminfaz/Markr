@@ -10,7 +10,7 @@ router.get("/:id/aggregate", async (req, res) => {
   }
 
   res.send({
-    mean: testResult.mean,
+    mean: testResult.meanPercentage,
     count: testResult.studentResults.size,
     p25: testResult.p25,
     p50: testResult.p50,
